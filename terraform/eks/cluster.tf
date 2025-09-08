@@ -1,17 +1,17 @@
 module "eks" {
   source          = "terraform-aws-modules/eks/aws"
-  cluster_name    = "insurance-eks"
-  cluster_version = "1.28"
+  cluster_name    = var.cluster_name
+  cluster_version = var.cluster_version
   subnets         = module.vpc.private_subnets
   vpc_id          = module.vpc.vpc_id
 
   node_groups = {
     default = {
-      desired_capacity = 2
-      max_capacity     = 3
-      min_capacity     = 1
+      desired_capacity = var.desired_capacity
+      max_capacity     = var.max_capacity
+      min_capacity     = var.min_capacity
 
-      instance_type = "t3.medium"
+      instance_type = var.node_instance_type
     }
   }
 }
