@@ -1,0 +1,31 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "AWS CLI is available, no Terraform needed"
+  pre_build:
+    commands:
+      - echo "Validating CloudFormation templates"
+      - aws cloudformation validate-template --template-body file://infra/vpc.yaml
+      - aws cloudformation validate-template --template-body file://infra/eks.yaml
+  build:
+    commands:
+      - echo "Deploying VPC..."
+      - aws cloudformation deploy \
+          --template-file infra/vpc.yaml \
+          --stack-name insurance-vpc \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides file://infra/parameters.json
+      - echo "Deploying EKS cluster..."
+      - aws cloudformation deploy \
+          --template-file infra/eks.yaml \
+          --stack-name insurance-eks \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides file://infra/parameters.json
+      - echo "Deploying NodeGroups..."
+      - aws cloudformation deploy \
+          --template-file infra/nodegroups.yaml \
+          --stack-name insurance-eks-nodes \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides file://infra/parameters.json
