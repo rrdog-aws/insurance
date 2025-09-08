@@ -3,29 +3,56 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo "AWS CLI is available, no Terraform needed"
+      - echo "AWS CLI is already available in CodeBuild"
+      - aws --version
+
   pre_build:
     commands:
-      - echo "Validating CloudFormation templates"
-      - aws cloudformation validate-template --template-body file://infra/vpc.yaml
-      - aws cloudformation validate-template --template-body file://infra/eks.yaml
+      - echo "Starting deployment of CloudFormation stacks..."
+
   build:
     commands:
+      # 1️⃣ Deploy VPC
       - echo "Deploying VPC..."
       - aws cloudformation deploy \
           --template-file infra/vpc.yaml \
           --stack-name insurance-vpc \
-          --capabilities CAPABILITY_NAMED_IAM \
-          --parameter-overrides file://infra/parameters.json
+          --capabilities CAPABILITY_NAMED_IAM
+
+      # Capture outputs
+      - echo "Capturing VPC outputs..."
+      - VPC_ID=$(aws cloudformation describe-stacks --stack-name insurance-vpc --query "Stacks[0].Outputs[?OutputKey=='VpcId'].OutputValue" --output text)
+      - PRIVATE_SUBNETS=$(aws cloudformation describe-stacks --stack-name insurance-vpc --query "Stacks[0].Outputs[?OutputKey=='PrivateSubnets'].OutputValue" --output text | tr ',' ' ')
+      - PUBLIC_SUBNETS=$(aws cloudformation describe-stacks --stack-name insurance-vpc --query "Stacks[0].Outputs[?OutputKey=='PublicSubnets'].OutputValue" --output text | tr ',' ' ')
+
+      # 2️⃣ Deploy IAM
+      - echo "Deploying IAM roles..."
+      - aws cloudformation deploy \
+          --template-file infra/iam.yaml \
+          --stack-name insurance-iam \
+          --capabilities CAPABILITY_NAMED_IAM
+
+      # Capture IAM outputs
+      - echo "Capturing IAM outputs..."
+      - CLUSTER_ROLE=$(aws cloudformation describe-stacks --stack-name insurance-iam --query "Stacks[0].Outputs[?OutputKey=='EKSClusterRoleArn'].OutputValue" --output text)
+      - NODE_ROLE=$(aws cloudformation describe-stacks --stack-name insurance-iam --query "Stacks[0].Outputs[?OutputKey=='EKSNodeRoleArn'].OutputValue" --output text)
+
+      # 3️⃣ Deploy EKS cluster
       - echo "Deploying EKS cluster..."
       - aws cloudformation deploy \
           --template-file infra/eks.yaml \
           --stack-name insurance-eks \
           --capabilities CAPABILITY_NAMED_IAM \
-          --parameter-overrides file://infra/parameters.json
-      - echo "Deploying NodeGroups..."
+          --parameter-overrides ClusterRoleArn=$CLUSTER_ROLE VpcId=$VPC_ID SubnetIds="$PRIVATE_SUBNETS"
+
+      # 4️⃣ Deploy NodeGroup
+      - echo "Deploying EKS NodeGroup..."
       - aws cloudformation deploy \
           --template-file infra/nodegroups.yaml \
           --stack-name insurance-eks-nodes \
           --capabilities CAPABILITY_NAMED_IAM \
-          --parameter-overrides file://infra/parameters.json
+          --parameter-overrides ClusterName=insurance-eks NodeRoleArn=$NODE_ROLE SubnetIds="$PRIVATE_SUBNETS"
+
+post_build:
+  commands:
+    - echo "All CloudFormation stacks deployed successfully!"

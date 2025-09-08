@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "EKS Cluster"
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: insurance-eks
+  ClusterRoleArn:
+    Type: String
+  VpcId:
+    Type: String
+  SubnetIds:
+    Type: CommaDelimitedList
+
+Resources:
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref ClusterName
+      RoleArn: !Ref ClusterRoleArn
+      ResourcesVpcConfig:
+        SubnetIds: !Ref SubnetIds
+        EndpointPublicAccess: true
+
+Outputs:
+  ClusterName:
+    Value: !Ref EKSCluster
+  ClusterArn:
+    Value: !GetAtt EKSCluster.Arn

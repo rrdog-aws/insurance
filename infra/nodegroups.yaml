@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "EKS Managed Node Group"
+
+Parameters:
+  ClusterName:
+    Type: String
+  NodeRoleArn:
+    Type: String
+  SubnetIds:
+    Type: CommaDelimitedList
+  NodeGroupName:
+    Type: String
+    Default: default
+  InstanceType:
+    Type: String
+    Default: t3.medium
+  DesiredCapacity:
+    Type: Number
+    Default: 2
+  MinSize:
+    Type: Number
+    Default: 1
+  MaxSize:
+    Type: Number
+    Default: 3
+
+Resources:
+  EKSNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodeRole: !Ref NodeRoleArn
+      Subnets: !Ref SubnetIds
+      ScalingConfig:
+        DesiredSize: !Ref DesiredCapacity
+        MinSize: !Ref MinSize
+        MaxSize: !Ref MaxSize
+      InstanceTypes:
+        - !Ref InstanceType
+      NodegroupName: !Ref NodeGroupName
