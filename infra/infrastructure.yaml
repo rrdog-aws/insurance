@@ -160,6 +160,7 @@ Resources:
   # -------------------
   EKSNodeGroup:
     Type: AWS::EKS::Nodegroup
+    DependsOn: EKSCluster
     Properties:
       ClusterName: !Ref ClusterName
       NodeRole: !GetAtt EKSNodeRole.Arn
