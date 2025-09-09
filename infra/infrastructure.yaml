@@ -162,18 +162,17 @@ Resources:
     Type: AWS::EKS::Nodegroup
     DependsOn: EKSCluster
     Properties:
-      ClusterName: !Ref ClusterName
+      ClusterName: !Ref EKSCluster
       NodeRole: !GetAtt EKSNodeRole.Arn
-      Subnets:
-        - !Ref PrivateSubnet1
-        - !Ref PrivateSubnet2
+      Subnets: !Ref PrivateSubnets
       ScalingConfig:
-        DesiredSize: !Ref DesiredCapacity
-        MinSize: !Ref MinSize
-        MaxSize: !Ref MaxSize
+        DesiredSize: 2
+        MinSize: 1
+        MaxSize: 3
       InstanceTypes:
-        - !Ref InstanceType
-      NodegroupName: !Ref NodeGroupName
+        - t3.medium
+      NodegroupName: default
+
 
 Outputs:
   VpcId:
